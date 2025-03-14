@@ -1,0 +1,74 @@
+﻿syntax = "proto3";
+
+package historian_protos;
+
+import "google/protobuf/timestamp.proto";
+
+option csharp_namespace = "Historian";
+
+service HistorianReader {
+  // Returns the timeseries data for the provided IDs and filters.
+  rpc GetTimeseries(GetTimeseriesRequest)
+      returns (stream GetTimeseriesResponse);
+}
+
+// Contains the requests to get timeseries data
+message GetTimeseriesRequest {
+  // Contains the requests to get timeseries data
+  repeated TimeseriesRequest timeseries_data_requests = 1;
+}
+
+// Contains the result of the timeseries data request
+message GetTimeseriesResponse {
+  // Hashmap where the key is the timeseries id
+  // and the values are the data data.
+  repeated Timeseries timeseries_data = 1;
+}
+
+message Timeseries {
+  double value = 1;
+  int32 timeseries_id = 2;
+  int32 quality = 3;
+  int32 source = 4;
+  google.protobuf.Timestamp timestamp = 5;
+  int64 sequence = 6;
+}
+
+// Contains the request to get timeseries data with various filters.
+message TimeseriesRequest {
+  // If empty all timeseries will be queried and ordering will be on sequence.
+  // Otherwise ordering will be on (id, sequence).
+  repeated int32 timeseries_ids = 1;
+
+  oneof filter {
+    Timestamps timestamps = 2;
+    Sequence sequence = 3;
+    LastData last_data = 5;
+  }
+
+  // Whether to include the newest datapoint before the filter.
+  // Does not yet support queries for stream 0.
+  optional bool include_newest_data_before_filter = 4;
+}
+
+// Contains the timestamps to filter the timeseries data.
+message Timestamps {
+  // Inclusive
+  google.protobuf.Timestamp from = 1;
+  // Exclusive
+  optional google.protobuf.Timestamp to = 2;
+}
+
+message Sequence {
+  // Inclusive
+  int64 from = 1;
+  // Exclusive
+  optional int64 to = 2;
+}
+
+enum LastData {
+  LAST_DATA_UNSPECIFIED = 0;
+  LAST_DATA_PROCESS_TIME = 1;
+  LAST_DATA_SERVER_TIME = 2;
+  LAST_DATA_SEQUENCE = 3;
+}
