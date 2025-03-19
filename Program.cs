@@ -19,12 +19,6 @@ long from = 0;
 //int from = 1715132800;
 long to = from + batch_size;
 
-var sequenceRequest = new Sequence()
-{
-    From = from,
-    To = to
-};
-
 try
 {
     while (true)
@@ -33,6 +27,12 @@ try
         var responsesCount = 0;
 
         var request = new GetTimeseriesRequest();
+
+        var sequenceRequest = new Sequence()
+        {
+            From = from,
+            To = to
+        };
 
         var timeseriesRequest = new TimeseriesRequest()
         {
