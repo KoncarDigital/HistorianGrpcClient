@@ -13,24 +13,17 @@ var opts = new GrpcChannelOptions
 var channel = GrpcChannel.ForAddress("http://localhost:2710", opts);
 var client = new Historian.HistorianReader.HistorianReaderClient(channel);
 
-//var timeseriesRequest = new TimeseriesRequest()
-//{
-//    Sequence = new Sequence()
-//    {
-//        From = 0,
-//        To = 1000
-//    },
-//};
-
-//timeseriesRequest.TimeseriesIds.Add(0);
-
-
 int batch_size = 1_000_000;
-//int batch_size = 1_000_000;
 
-int from = 0;
+long from = 0;
 //int from = 1715132800;
-int to = from + batch_size;
+long to = from + batch_size;
+
+var sequenceRequest = new Sequence()
+{
+    From = from,
+    To = to
+};
 
 try
 {
@@ -43,30 +36,9 @@ try
 
         var timeseriesRequest = new TimeseriesRequest()
         {
-            Sequence = new Sequence()
-            {
-                From = from,
-                To = to
-            },
-            //Timestamps = new Timestamps()
-            //{
-            //    From = new Google.Protobuf.WellKnownTypes.Timestamp()
-            //    {
-            //        Seconds = from,
-            //        Nanos = 0
-            //    },
-            //    To = new Google.Protobuf.WellKnownTypes.Timestamp()
-            //    {
-            //        Seconds = to,
-            //        Nanos = 0
-            //    },
-            //},
-            //IncludeNewestDataBeforeFilter = true,
-            //LastData = LastData.ProcessTime,
+            Sequence = sequenceRequest,
+            IncludeNewestDataBeforeFilter = false
         };
-
-        //for (int i = 1; i < 1000; i++)
-        //    timeseriesRequest.TimeseriesIds.Add(i);
 
         //timeseriesRequest.TimeseriesIds.Add(1);
 
@@ -75,16 +47,18 @@ try
         var timer = System.Diagnostics.Stopwatch.StartNew();
         var res = client.GetTimeseries(request);
 
+        long maxSeq = 0;
+
         await foreach (var response in res.ResponseStream.ReadAllAsync())
         {
-            //Console.WriteLine($"Response: {response.TimeseriesData.Count}");
+            maxSeq = response.TimeseriesData.Max(x => x.Sequence);
+
             resultsCount += response.TimeseriesData.Count;
             responsesCount++;
         }
 
         timer.Stop();
-        Console.WriteLine($"{DateTime.UtcNow.ToString()} (from: {from}, to: {to}) Elapsed time: {timer.ElapsedMilliseconds} ms. Data {resultsCount}");
-        // Console.WriteLine($"Data per second: {resultsCount / (timer.ElapsedMilliseconds / 1000)}");
+        Console.WriteLine($"{DateTime.UtcNow} (from: {from}, to: {to}) Elapsed time: {timer.ElapsedMilliseconds} ms. Data {resultsCount} Max seq: {maxSeq}");
 
         from = to;
         to = from + batch_size;
